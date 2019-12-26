@@ -1,10 +1,10 @@
-#! armclang -E --target=arm-arm-none-eabi -x c -mcpu=cortex-m4
+#! armclang -E --target=arm-arm-none-eabi -x c -mcpu=cortex-m0
 ; The first line specifies a preprocessor command that the linker invokes
 ; to pass a scatter file through a C preprocessor.
 
 ;*******************************************************************************
-;* \file cy8c6xxa_cm4_dual.sct
-;* \version 2.60
+;* \file cy8c6xxa_cm0plus.sct
+;* \version 2.70
 ;*
 ;* Linker file for the ARMCC.
 ;*
@@ -45,24 +45,21 @@
 ; The defines below describe the location and size of blocks of memory in the target.
 ; Use these defines to specify the memory regions available for allocation.
 
-; The following defines control RAM and flash memory allocation for the CM4 core.
-; You can change the memory allocation by editing RAM and Flash defines.
+; The following defines control RAM and flash memory allocation for the CM0+ core.
+; You can change the memory allocation by editing the RAM and Flash defines.
 ; Note that 2 KB of RAM (at the end of the SRAM) are reserved for system use.
 ; Using this memory region for other purposes will lead to unexpected behavior.
-; Your changes must be aligned with the corresponding defines for CM0+ core in 'xx_cm0plus.scat',
-; where 'xx' is the device group; for example, 'cy8c6xx7_cm0plus.scat'.
+; Your changes must be aligned with the corresponding defines for the CM4 core in 'xx_cm4_dual.scat',
+; where 'xx' is the device group; for example, 'cy8c6xx7_cm4_dual.scat'.
 ; RAM
-#define RAM_START               0x08002000
-#define RAM_SIZE                0x000FD800
+#define RAM_START               0x08000000
+#define RAM_SIZE                0x00002000
 ; Flash
 #define FLASH_START             0x10000000
-#define FLASH_SIZE              0x00200000
+#define FLASH_SIZE              0x00002000
 
-; Size of the stack section at the end of CM4 SRAM
+; The size of the stack section at the end of CM0+ SRAM
 #define STACK_SIZE              0x00001000
-
-; Size of the Cortex-M0+ application flash image
-#define FLASH_CM0P_SIZE         0x2000
 
 ; The following defines describe a 32K flash region used for EEPROM emulation.
 ; This region can also be used as the general purpose flash.
@@ -102,18 +99,14 @@
 #define EFUSE_SIZE              0x100000
 
 
-; Cortex-M0+ application flash image area
-LR_IROM FLASH_START FLASH_CM0P_SIZE
+; Cortex-M0+ application flash area
+LR_IROM1 FLASH_START FLASH_SIZE
 {
-    .cy_m0p_image +0 FLASH_CM0P_SIZE
+    .cy_app_header +0
     {
-        * (.cy_m0p_image)
+        * (.cy_app_header)
     }
-}
 
-; Cortex-M4 application flash area
-LR_IROM1 (FLASH_START + FLASH_CM0P_SIZE) (FLASH_SIZE - FLASH_CM0P_SIZE)
-{
     ER_FLASH_VECTORS +0
     {
         * (RESET, +FIRST)
@@ -147,18 +140,10 @@ LR_IROM1 (FLASH_START + FLASH_CM0P_SIZE) (FLASH_SIZE - FLASH_CM0P_SIZE)
     ARM_LIB_HEAP  +0 EMPTY ((RAM_START+RAM_SIZE)-AlignExpr(ImageLimit(RW_IRAM1), 8)-STACK_SIZE)
     { 
     }
-    
+
     ; Stack region growing down
     ARM_LIB_STACK (RAM_START+RAM_SIZE) EMPTY -STACK_SIZE
     {
-    }
-
-    ; Used for the digital signature of the secure application and the
-    ; Bootloader SDK application. The size of the section depends on the required
-    ; data size.
-    .cy_app_signature (FLASH_START + FLASH_SIZE - 256) 256
-    {
-        * (.cy_app_signature)
     }
 }
 
